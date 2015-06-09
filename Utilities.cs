@@ -69,63 +69,6 @@ namespace AE.Net.Mail {
 			return data;
 		}
 
-		internal static string ReadLine(this Stream stream, ref int maxLength, Encoding encoding, char? termChar, int ReadTimeout = 10000) {
-			if (stream.CanTimeout)
-				stream.ReadTimeout = ReadTimeout;
-
-			var maxLengthSpecified = maxLength > 0;
-			int i;
-			byte b = 0, b0;
-			var read = false;
-			using (var mem = new MemoryStream()) {
-				while (true) {
-					b0 = b;
-					i = stream.ReadByte();
-					if (i == -1) break;
-					else read = true;
-
-					b = (byte)i;
-					if (maxLengthSpecified) maxLength--;
-
-					if (maxLengthSpecified && mem.Length == 1 && b == termChar && b0 == termChar) {
-						maxLength++;
-						continue;
-					}
-
-					if (b == 10 || b == 13) {
-						if (mem.Length == 0 && b == 10) {
-							continue;
-						} else break;
-					}
-
-					mem.WriteByte(b);
-					if (maxLengthSpecified && maxLength == 0)
-						break;
-				}
-
-				if (mem.Length == 0 && !read) return null;
-				return encoding.GetString(mem.ToArray());
-			}
-		}
-
-		internal static string ReadToEnd(this Stream stream, int maxLength, Encoding encoding) {
-			if (stream.CanTimeout)
-				stream.ReadTimeout = 10000;
-
-			int read = 1;
-			byte[] buffer = new byte[8192];
-			using (var mem = new MemoryStream()) {
-				do {
-					var length = maxLength == 0 ? buffer.Length : Math.Min(maxLength - (int)mem.Length, buffer.Length);
-					read = stream.Read(buffer, 0, length);
-					mem.Write(buffer, 0, read);
-					if (maxLength > 0 && mem.Length == maxLength) break;
-				} while (read > 0);
-
-				return encoding.GetString(mem.ToArray());
-			}
-		}
-
 		internal static void TryDispose<T>(ref T obj) where T : class, IDisposable {
 			try {
 				if (obj != null)

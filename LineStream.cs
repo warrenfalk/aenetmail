@@ -11,7 +11,8 @@ namespace AE.Net.Mail
     {
         LINEDATA,
         CR,
-        EOF
+        EOF,
+        EXCESS,
     }
 
     public class LineStream : IDisposable
@@ -31,43 +32,14 @@ namespace AE.Net.Mail
 
         public string ReadLine(int timeout = -1)
         {
-            stream.ReadTimeout = timeout;
-            if (readState == ReadState.EOF)
-                return null;
-            while (true)
-            {
-                int b = stream.ReadByte();
-                if (b == -1)
-                {
-                    readState = ReadState.EOF;
-                    return TakeCurrentLine();
-                }
-                if (b == 10)
-                {
-                    if (readState == ReadState.CR)
-                    {
-                        readState = ReadState.LINEDATA;
-                        continue;
-                    }
-                    readState = ReadState.LINEDATA;
-                    return TakeCurrentLine();
-                }
-                else
-                {
-                    readState = ReadState.LINEDATA;
-                }
-                if (b == 13)
-                {
-                    readState = ReadState.CR;
-                    return TakeCurrentLine();
-                }
-                lineBuffer.WriteByte((byte)b);
-            }
+            int maxLength = int.MaxValue;
+            return ReadLine(ref maxLength, timeout);
         }
 
-        private string TakeCurrentLine()
+        private string TakeCurrentLine(ref int bufferSize)
         {
             var bytes = lineBuffer.ToArray();
+            bufferSize -= bytes.Length;
             var line = encoding.GetString(bytes);
             if (Debug)
                 Trace.WriteLine("S:" + line);
@@ -102,11 +74,52 @@ namespace AE.Net.Mail
             stream.Write(NEWLINE, 0, NEWLINE.Length);
         }
 
-        public string ReadLine(ref int maxLength, Encoding _DefaultEncoding = null, char? termChar = null, int timeout = -1)
+        public string ReadLine(ref int maxLength, int timeout = -1)
         {
-            if (maxLength > 0 || termChar.HasValue || timeout == 0)
-                throw new NotImplementedException();
-            return ReadLine(timeout);
+            stream.ReadTimeout = timeout;
+            if (readState == ReadState.EOF)
+                return null;
+            while (true)
+            {
+                int b = stream.ReadByte();
+                if (b == -1)
+                {
+                    readState = ReadState.EOF;
+                    return TakeCurrentLine(ref maxLength);
+                }
+                if (b == 10)
+                {
+                    if (readState == ReadState.CR || readState == ReadState.EXCESS)
+                    {
+                        readState = ReadState.LINEDATA;
+                        continue;
+                    }
+                    readState = ReadState.LINEDATA;
+                    return TakeCurrentLine(ref maxLength);
+                }
+                else if (readState != ReadState.EXCESS)
+                {
+                    readState = ReadState.LINEDATA;
+                }
+                if (b == 13)
+                {
+                    if (readState == ReadState.EXCESS)
+                    {
+                        readState = ReadState.CR;
+                        continue;
+                    }
+                    readState = ReadState.CR;
+                    return TakeCurrentLine(ref maxLength);
+                }
+                if (readState == ReadState.EXCESS)
+                    continue;
+                lineBuffer.WriteByte((byte)b);
+                if (lineBuffer.Length == maxLength)
+                {
+                    readState = ReadState.EXCESS;
+                    return TakeCurrentLine(ref maxLength);
+                }
+            }
         }
 
         public void Dispose()
@@ -138,5 +151,7 @@ namespace AE.Net.Mail
                 ;
             return buffer;
         }
+
+        public Encoding Encoding { get { return this.encoding; } }
     }
 }

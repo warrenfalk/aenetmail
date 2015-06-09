@@ -113,8 +113,7 @@ namespace AE.Net.Mail {
 		}
 
 		protected virtual string GetResponse(int timeout) {
-			int max = 0;
-			return _Stream.ReadLine(ref max, Encoding, null, timeout);
+			return _Stream.ReadLine(timeout);
 		}
 
 		protected virtual void SendCommandCheckOK(string command) {

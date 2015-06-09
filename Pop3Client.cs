@@ -44,7 +44,7 @@ namespace AE.Net.Mail {
 			var size = rxOctets.Match(line).Groups[1].Value.ToInt();
 			CheckResultOK(line);
 			var msg = new MailMessage();
-			msg.Load(_Stream, headersOnly, size, '.');
+			msg.Load(_Stream, headersOnly, size);
 
 			msg.Uid = uid;
 			var last = GetResponse();
