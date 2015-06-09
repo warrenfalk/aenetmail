@@ -17,6 +17,11 @@ namespace AE.Net.Mail.Imap {
 		internal void SetFlags(string flags) {
 			Flags = flags.Split(' ');
 		}
+
+		public override string ToString()
+		{
+			return string.Format("({0})", Name);
+		}
 	}
 }
 
