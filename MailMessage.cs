@@ -79,11 +79,11 @@ namespace AE.Net.Mail {
 		public virtual void Load(string message, bool headersOnly = false) {
 			if (string.IsNullOrEmpty(message)) return;
 			using (var mem = new MemoryStream(_DefaultEncoding.GetBytes(message))) {
-				Load(mem, headersOnly, message.Length);
+				Load(new LineStream(mem, Encoding), headersOnly, message.Length);
 			}
 		}
 
-		public virtual void Load(Stream reader, bool headersOnly = false, int maxLength = 0, char? termChar = null)
+		public virtual void Load(LineStream reader, bool headersOnly = false, int maxLength = 0, char? termChar = null)
 		{
 			_HeadersOnly = headersOnly;
 			Headers = null;
@@ -151,7 +151,7 @@ namespace AE.Net.Mail {
 			Subject = Headers["Subject"].RawValue;
 		}
 
-		private static string ParseMime(Stream reader, string boundary, ref int maxLength, ICollection<Attachment> attachments, Encoding encoding, char? termChar) {
+		private static string ParseMime(LineStream reader, string boundary, ref int maxLength, ICollection<Attachment> attachments, Encoding encoding, char? termChar) {
 			var maxLengthSpecified = maxLength > 0;
 			string data = null,
 					bounderInner = "--" + boundary,

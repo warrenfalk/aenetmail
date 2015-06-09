@@ -378,15 +378,17 @@ namespace AE.Net.Mail {
 
 		public virtual void DownloadMessage(System.IO.Stream stream, int index, bool setseen) {
 			GetMessages((index + 1).ToString(), (index + 1).ToString(), false, false, false, setseen, (message, size, headers) => {
-				Utilities.CopyStream(message, stream, size);
+                var bytes = message.ConsumeRaw(size);
+                stream.Write(bytes, 0, bytes.Length);
 				return null;
 			});
 		}
 
 		public virtual void DownloadMessage(System.IO.Stream stream, string uid, bool setseen) {
 			GetMessages(uid, uid, true, false, false, setseen, (message, size, headers) => {
-				Utilities.CopyStream(message, stream, size);
-				return null;
+                var bytes = message.ConsumeRaw(size);
+                stream.Write(bytes, 0, bytes.Length);
+                return null;
 			});
 		}
 
@@ -439,7 +441,7 @@ namespace AE.Net.Mail {
 			});
 		}
 
-		public virtual void GetMessages(string start, string end, bool uid, bool uidsonly, bool headersonly, bool setseen, Func<System.IO.Stream, int, NameValueCollection, MailMessage> action) {
+		public virtual void GetMessages(string start, string end, bool uid, bool uidsonly, bool headersonly, bool setseen, Func<LineStream, int, NameValueCollection, MailMessage> action) {
 			CheckMailboxSelected();
 			IdlePause();
 
@@ -833,5 +835,17 @@ namespace AE.Net.Mail {
 			response = response.Substring(response.IndexOf(" ")).Trim();
 			return response.ToUpper().StartsWith("OK");
 		}
-	}
+
+        public bool Debug
+        { 
+            get
+            {
+                return _Stream.Debug;
+            }
+            set
+            {
+                _Stream.Debug = value;
+            }
+        }
+    }
 }

@@ -5,7 +5,7 @@ using System.Net.Sockets;
 namespace AE.Net.Mail {
 	public abstract class TextClient : IDisposable {
 		protected TcpClient _Connection;
-		protected Stream _Stream;
+		protected LineStream _Stream;
 
 		public virtual string Host { get; private set; }
 		public virtual int Port { get; set; }
@@ -66,17 +66,18 @@ namespace AE.Net.Mail {
 				Ssl = ssl;
 
 				_Connection = new TcpClient(hostname, port);
-				_Stream = _Connection.GetStream();
+				Stream stream = _Connection.GetStream();
 				if (ssl) {
 					System.Net.Security.SslStream sslStream;
 					if (validateCertificate != null)
-						sslStream = new System.Net.Security.SslStream(_Stream, false, validateCertificate);
+						sslStream = new System.Net.Security.SslStream(stream, false, validateCertificate);
 					else
-						sslStream = new System.Net.Security.SslStream(_Stream, false);
-					_Stream = sslStream;
+						sslStream = new System.Net.Security.SslStream(stream, false);
+					stream = sslStream;
 					sslStream.AuthenticateAsClient(hostname);
 				}
 
+                _Stream = new LineStream(stream, Encoding);
 				OnConnected(GetResponse());
 
 				IsConnected = true;
@@ -98,8 +99,7 @@ namespace AE.Net.Mail {
 		}
 
 		protected virtual void SendCommand(string command) {
-			var bytes = System.Text.Encoding.Default.GetBytes(command + "\r\n");
-			_Stream.Write(bytes, 0, bytes.Length);
+            _Stream.WriteLine(command);
 		}
 
 		protected virtual string SendCommandGetResponse(string command) {
