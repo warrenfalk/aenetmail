@@ -88,13 +88,16 @@ namespace AE.Net.Mail {
 			return mailAddresses.ToArray();
 		}
 
+        private static readonly Regex NewlinePattern = new Regex("\r\n|\r|\n", RegexOptions.Compiled);
 		public static HeaderDictionary Parse(string headers, System.Text.Encoding encoding) {
 			headers = Utilities.DecodeWords(headers, encoding);
 			var temp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-			var lines = headers.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+			var lines = NewlinePattern.Split(headers);
 			int i;
 			string key = null, value;
 			foreach (var line in lines) {
+                if (line.Length == 0)
+                    break;
 				if (key != null && (line[0] == '\t' || line[0] == ' ')) {
 					temp[key] += line.TrimStartOnce();
 				} else {
